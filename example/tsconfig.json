@@ -1,20 +1,23 @@
 {
   "compilerOptions": {
-    "baseUrl": "./",
-    "outDir": "lib",
+    "target": "ES2020",
+    "module": "commonjs",
     "declaration": true,
-    "target": "ESNext",
-    "module": "CommonJS",
+    "outDir": "./dist",
     "strict": true,
+    "esModuleInterop": true,
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "pretty": true,
   },
+  "include": [
+    "src/",
+    "index.ts"
+  ],
   "exclude": [
-    "example/docs",
-    "example"
+    "node_modules/",
+    "dist/"
   ]
 }
