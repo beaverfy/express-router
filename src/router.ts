@@ -3,9 +3,11 @@ import type { Application, Request, Response } from "express";
 import klawSync from "klaw-sync";
 import type { Route } from "./route";
 import { FileSystemWalker } from "file-system-walker";
+import "colors";
 
+const currentDirectory = process.cwd();
 const defaultRouterConfiguration: ExpressRouterConfiguration = {
-    directory: "./routes",
+    directory: `./${currentDirectory}/routes`,
     authentication: {
         token: process.env.ROUTER_TOKEN as string,
         enabledByDefault: true
@@ -23,21 +25,39 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
         ..._config
     };
 
+    const routePath = currentDirectory + configuration.directory.replaceAll(".", "");
+
     if (!configuration.directory) throw new Error(`[ExpressRouter] expected string for directory but got ${configuration.directory}`);
-    async function fetchRouteFiles(): Promise<(Route & { path: string; })[]> {
-        const walker = new FileSystemWalker(configuration.directory);
-        const routeFiles = [];
+    async function fetchRouteFiles(): Promise<(Route & { path: string })[]> {
+        console.log(currentDirectory, configuration.directory);
+        const walker = new FileSystemWalker(routePath);
+        const routeFiles: (Route & { path: string })[] = [];
+
         for await (const file of walker) {
-            const fileContent = require(file.filepath);
-            const route: Route = new fileContent.default();
-            routeFiles.push({
-                ...route,
-                path: file.filepath
-            });
+            if (!file.filepath.endsWith(".js")) continue;
+
+            try {
+                // Explicitly define the type of the imported module
+                const fileContent: { default: new () => Route } = await import("file:/" + file.filepath);
+
+                // Check if the imported module has a default export
+                if (fileContent.default) {
+                    const route: Route = new fileContent.default();
+                    console.log(route, file, fileContent);
+                    routeFiles.push({
+                        ...route,
+                        path: file.filepath,
+                    });
+                }
+            } catch (error) {
+                console.warn(`${"Could not import".red} ${file.filepath.gray}, make sure ${"this file exists".blue} and is a ${"valid javascript file".blue}: ${error}`);
+                continue;
+            }
         }
 
         return routeFiles;
     }
+
 
     function addAuthentication(route: (req: Request, res: Response) => unknown, config: Route) {
         if (configuration.authentication?.token != null && (config?.requireAuthorization == true || (
@@ -60,6 +80,9 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
         await fetchRouteFiles()
     );
 
+    /**
+     * Not well made method that dangerously replaces things to get the route path for express
+     */
     function resolvePath(filePath: string): string {
         console.log("resolving: ", filePath);
 
@@ -73,8 +96,13 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
         // Remove ".js" if present
         relativePath = relativePath.replace(".js", "");
 
+        // Remove current path
+        relativePath = relativePath.replace(routePath, "");
+
         // Remove "index" and leading "/" if present
-        relativePath = relativePath.replace("index", "").replace(/^\//, "");
+        relativePath = relativePath.replace("index", "");
+
+        if (!relativePath.startsWith("/")) relativePath = `/${relativePath}`;
 
         // Handle dynamic paths like "/blog/[author]/[id].ts"
         while (relativePath.includes("[") && relativePath.includes("]")) {
@@ -92,12 +120,17 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
     }
 
     for (const route of routes.values()) {
-        const name = resolvePath(route.path);
-        if (route.onGet) app.get(name, addAuthentication(route.onGet, route));
-        if (route.onHead) app.head(name, addAuthentication(route.onHead, route));
-        if (route.onPost) app.post(name, addAuthentication(route.onPost, route));
-        if (route.onPut) app.put(name, addAuthentication(route.onPut, route));
-        if (route.onPatch) app.patch(name, addAuthentication(route.onPatch, route));
-        if (route.onDelete) app.delete(name, addAuthentication(route.onDelete, route));
+        const defaultPath = resolvePath(route.path);
+        const path = typeof route?.routeName != "string" ?
+            defaultPath :
+            route.routeName.replaceAll("%DEFAULT_PATH%", defaultPath);
+
+        console.log("available methods:", route.onGet != null, route)
+        if (route.onGet) app.get(path, addAuthentication(route.onGet, route));
+        if (route.onHead) app.head(path, addAuthentication(route.onHead, route));
+        if (route.onPost) app.post(path, addAuthentication(route.onPost, route));
+        if (route.onPut) app.put(path, addAuthentication(route.onPut, route));
+        if (route.onPatch) app.patch(path, addAuthentication(route.onPatch, route));
+        if (route.onDelete) app.delete(path, addAuthentication(route.onDelete, route));
     }
 }

@@ -93,6 +93,7 @@
     "lib/"
   ],
   "dependencies": {
+    "colors": "^1.4.0",
     "file-system-walker": "^1.0.12",
     "klaw-sync": "^6.0.0"
   }

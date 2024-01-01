@@ -1,14 +1,19 @@
 import type { Request, Response } from "express";
+import { RouteNameVariables } from "./constants";
+
+export type RouteRequireAuthorization = boolean |
+    `${string | null}${RouteNameVariables.RequireAuthorizationByDefault}${string | null}` |
+    RouteNameVariables.RequireAuthorizationByDefault;
 
 export class Route {
     /**
      * This is an internal method, use contructor with super instead
      */
-    public routeName: string = "%FILE_NAME%";
+    public routeName: string = RouteNameVariables.DefaultPath;
     /**
      * This is an internal method, use contructor with super instead
      */
-    public requireAuthorization = true;
+    public requireAuthorization: RouteRequireAuthorization = true;
     constructor(options?: {
         /**
          * Overrides the route name derived from the file path
@@ -17,10 +22,14 @@ export class Route {
         /**
          * If this route should require authorization, if not defined uses `ExpressRouterConfiguration.authentication#enabledByDefault`
          */
-        requireAuthorization?: boolean;
+        requireAuthorization?: RouteRequireAuthorization;
     }) {
-        this.routeName = options?.routeName ?? "%FILE_NAME%";
-        this.requireAuthorization = options?.requireAuthorization ?? true;
+        this.routeName = typeof options?.routeName == "string" ?
+            options.routeName :
+            RouteNameVariables.DefaultPath;
+        this.requireAuthorization = typeof options?.requireAuthorization == "boolean" ?
+            options.requireAuthorization :
+            RouteNameVariables.RequireAuthorizationByDefault;
     }
 
     /* Methods from https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods */
