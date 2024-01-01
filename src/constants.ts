@@ -9,3 +9,11 @@ export enum RouteNameVariables {
      */
     RequireAuthorizationByDefault = "%AUTHORIZATION_BY_DEFAULT%"
 }
+
+export function IgnoreFile() {
+    return {
+        expressRouter: {
+            ignoreFile: true
+        }
+    }
+}

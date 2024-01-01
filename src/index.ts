@@ -7,3 +7,7 @@ export {
 export {
     Route
 } from "./route";
+export {
+    IgnoreFile,
+    RouteNameVariables
+} from "./constants";

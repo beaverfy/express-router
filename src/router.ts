@@ -38,8 +38,15 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
 
             try {
                 // Explicitly define the type of the imported module
-                const fileContent: { default: new () => Route } = await import("file:/" + file.filepath);
+                const fileContent: {
+                    default: new () => Route, expressRouter?: {
+                        expressRouter?: {
+                            ignoreFile?: boolean;
+                        }
+                    }
+                } = await import("file:/" + file.filepath);
 
+                if (fileContent?.expressRouter?.expressRouter?.ignoreFile) continue;
                 // Check if the imported module has a default export
                 if (fileContent.default) {
                     const route: Route = new fileContent.default();
@@ -48,6 +55,8 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
                         ...route,
                         path: file.filepath,
                     });
+                } else {
+                    console.warn(`${file.filepath.gray} does not have a ${"default export".red}, make sure you've defined one with ${"export default ...".blue}`);
                 }
             } catch (error) {
                 console.warn(`${"Could not import".red} ${file.filepath.gray}, make sure ${"this file exists".blue} and is a ${"valid javascript file".blue}: ${error}`);
