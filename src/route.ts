@@ -33,10 +33,10 @@ export class Route {
     }
 
     /* Methods from https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods */
-    onGet?(request: Request, response: Response): any;
-    onHead?(request: Request, response: Response): any;
-    onPost?(request: Request, response: Response): any;
-    onPut?(request: Request, response: Response): any;
-    onDelete?(request: Request, response: Response): any;
-    onPatch?(request: Request, response: Response): any;
+    public onGet?(request: Request, response: Response): any;
+    public onHead?(request: Request, response: Response): any;
+    public onPost?(request: Request, response: Response): any;
+    public onPut?(request: Request, response: Response): any;
+    public onDelete?(request: Request, response: Response): any;
+    public onPatch?(request: Request, response: Response): any;
 }

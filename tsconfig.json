@@ -15,6 +15,7 @@
   },
   "exclude": [
     "example/docs",
-    "example"
+    "example",
+    "docs"
   ]
 }

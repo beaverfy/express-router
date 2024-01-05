@@ -4,6 +4,8 @@ import klawSync from "klaw-sync";
 import type { Route } from "./route";
 import { FileSystemWalker } from "file-system-walker";
 import "colors";
+import path from "path";
+import { walkTree } from "./walker";
 
 const currentDirectory = process.cwd();
 const defaultRouterConfiguration: ExpressRouterConfiguration = {
@@ -30,13 +32,15 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
     if (!configuration.directory) throw new Error(`[ExpressRouter] expected string for directory but got ${configuration.directory}`);
     async function fetchRouteFiles(): Promise<(Route & { path: string })[]> {
         console.log(currentDirectory, configuration.directory);
-        const walker = new FileSystemWalker(routePath);
+        const walker = walkTree(routePath);
         const routeFiles: (Route & { path: string })[] = [];
 
         for await (const file of walker) {
-            if (!file.filepath.endsWith(".js")) continue;
+            if (!file.name.endsWith(".js")) continue;
 
             try {
+                const filepath = path.parse(file.path);
+                console.log(filepath)
                 // Explicitly define the type of the imported module
                 const fileContent: {
                     default: new () => Route, expressRouter?: {
@@ -44,7 +48,9 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
                             ignoreFile?: boolean;
                         }
                     }
-                } = await import("file:/" + file.filepath);
+                } = await import(
+                    path.join(file.path, file.name)
+                );
 
                 if (fileContent?.expressRouter?.expressRouter?.ignoreFile) continue;
                 // Check if the imported module has a default export
@@ -53,13 +59,13 @@ export async function useExpressRouter(app: Application, _config?: ExpressRouter
                     console.log(route, file, fileContent);
                     routeFiles.push({
                         ...route,
-                        path: file.filepath,
+                        path: file.name,
                     });
                 } else {
-                    console.warn(`${file.filepath.gray} does not have a ${"default export".red}, make sure you've defined one with ${"export default ...".blue}`);
+                    console.warn(`${file.name.gray} does not have a ${"default export".red}, make sure you've defined one with ${"export default ...".blue}`);
                 }
             } catch (error) {
-                console.warn(`${"Could not import".red} ${file.filepath.gray}, make sure ${"this file exists".blue} and is a ${"valid javascript file".blue}: ${error}`);
+                console.warn(`${"Could not import".red} ${file.name.gray}, make sure ${"this file exists".blue} and is a ${"valid javascript file".blue}: ${error}`);
                 continue;
             }
         }

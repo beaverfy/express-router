@@ -1,0 +1,15 @@
+import { Callout } from "nextra-theme-docs";
+
+# Debugging
+<Callout type="warning">
+In version `1.0.11` we've removed debugging as it's caused some build issues
+</Callout>
+Sometimes, you might need to debug your project. You can enable debugging by passing `debugLogs: true`:
+
+```ts
+sendDataToClient({
+    //...
+}, {
+    debugLogs: true
+});
+```
